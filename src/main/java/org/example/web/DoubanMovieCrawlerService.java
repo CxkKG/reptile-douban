@@ -19,6 +19,13 @@ public class DoubanMovieCrawlerService {
         this.movieRepository = movieRepository;
     }
 
+    // 0. 将第一部电影放入队列，执行递归方法；
+    // 1. 判断队列是否为空，如果为空则代码结束
+    // 2. 找到电影的评分&名称
+    // 2.1 先用电影名查数据库，看是否已经存在，已经存在则不写入数据库；不存在，则写入数据库；
+    // 3. 找到电影的演职员表（包括导演&演员等），通过演职员表的人进入演职员表主页，找到相关电影，将相关电影链接找到，放入队列；
+    // 4. 结束方法
+
     public void crawlAndSaveMovies() {
         int page = 0;
         int pageSize = 25;
