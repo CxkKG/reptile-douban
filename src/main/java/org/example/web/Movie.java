@@ -8,17 +8,18 @@ public class Movie {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    private String title;
-
-    private String rating;
-
-    public Movie(Long id, String title, String rating) {
-        this.id = id;
-        this.title = title;
-        this.rating = rating;
+    private String name;
+    private String score;
+    public Movie() {
     }
-    public Movie() {}
+
+
+    public Movie(Long id, String name, String score) {
+        this.id = id;
+        this.name = name;
+        this.score = score;
+    }
+
 
     public Long getId() {
         return id;
@@ -28,21 +29,25 @@ public class Movie {
         this.id = id;
     }
 
-    public String getTitle() {
-        return title;
+    public String getName() {
+        return name;
     }
 
-    public void setTitle(String title) {
-        this.title = title;
+    public void setName(String name) {
+        this.name = name;
     }
 
-    public String getRating() {
-        return rating;
+    public String getScore() {
+        return score;
     }
 
-    public void setRating(String rating) {
-        this.rating = rating;
+    public void setScore(String score) {
+        this.score = score;
     }
+
+
+
+
 
 }
 
