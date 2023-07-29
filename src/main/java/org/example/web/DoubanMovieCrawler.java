@@ -23,14 +23,15 @@ public class DoubanMovieCrawler {
     private final Set<String> visitedMovies = new HashSet<>();
     private final Queue<String> actorUrlQueue = new LinkedList<>();
     private final Queue<String> movieUrlQueue = new LinkedList<>();
+    private static final int MAX_DEPATH = 100;
 
     public void crawlActorPage(String actorPageUrl) {
         actorUrlQueue.add(actorPageUrl);
-        bfsCrawl();
+        bfsCrawl(1);
     }
 
-    private void bfsCrawl() {
-        while (!actorUrlQueue.isEmpty()) {
+    private void bfsCrawl(int depath) {
+        while (!actorUrlQueue.isEmpty() && !movieUrlQueue.isEmpty() && depath <= MAX_DEPATH) {
             String currentActorUrl = actorUrlQueue.poll();
             if (!visitedActors.contains(currentActorUrl)) {
                 List<String> movieUrls = getMoviesFromActorPage(currentActorUrl);
@@ -43,6 +44,7 @@ public class DoubanMovieCrawler {
                     }
                 }
             }
+            depath++;
         }
 
         processMovieUrls();
