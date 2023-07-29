@@ -44,10 +44,9 @@ public class DoubanMovieCrawler {
                     }
                 }
             }
+            processMovieUrls();
             depath++;
         }
-
-        processMovieUrls();
     }
 
     private List<String> getMoviesFromActorPage(String actorPageUrl) {
@@ -71,7 +70,7 @@ public class DoubanMovieCrawler {
         while (!movieUrlQueue.isEmpty()) {
             String movieUrl = movieUrlQueue.poll();
             try {
-                Document document = Jsoup.connect(movieUrl).get();
+                Document document = Jsoup.connect(movieUrl).userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36").get();
                 String movieName = document.select("span[property=v:itemreviewed]").text();
                 String movieScore = document.select("strong[property=v:average]").text();
 
