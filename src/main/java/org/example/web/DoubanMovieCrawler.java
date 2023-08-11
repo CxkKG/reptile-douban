@@ -10,8 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-
 import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.*;
@@ -35,21 +33,24 @@ public class DoubanMovieCrawler {
     @PostConstruct
     public void recursiveCrawl() {
         movieUrlQueue.add("https://movie.douban.com/subject/1292052/");
+        login();
         while (!movieUrlQueue.isEmpty()) {
             String currentMovieUrl = movieUrlQueue.poll();
+            long movieDataStartTime = System.currentTimeMillis();
 
             if (currentMovieUrl == null) {
                 break;
             }
 
-            processMoviePage(currentMovieUrl);
+            processMoviePage(currentMovieUrl,movieDataStartTime);
         }
 
         System.out.println("爬取完成！");
     }
 
-    private void processMoviePage(String movieUrl) {
+    private void processMoviePage(String movieUrl,long movieDataStartTime) {
         try {
+            int count = 1;
             // 随机生成User-Agent头
             String randomUserAgent = getRandomUserAgent();
 
@@ -58,19 +59,23 @@ public class DoubanMovieCrawler {
             String movieRating = moviePage.selectFirst("strong[property=v:average]").text();
 
             if (!visitedMovies.contains(movieName)) {
-                // 这里可以写入数据库的逻辑，此处省略
                 // 查询数据库，检查电影是否已经存在
                 if(!isMovieExists(movieName)) {
                     // 将电影信息插入数据库
                     saveMovieInfo(movieName,movieRating);
                 }
-                logger.info("电影名称：{}",movieName);
-                logger.info("电影评分：{}",movieRating);
+                long movieDataEndTime = System.currentTimeMillis();
+                logger.info("电影爬取耗时:", movieDataEndTime - movieDataStartTime);
+                System.out.println(movieDataEndTime - movieDataStartTime);
+                //logger.info("电影名称：{}",movieName);
+                //logger.info("电影评分：{}",movieRating);
                 visitedMovies.add(movieName);
 
                 //找到电影的演职员表
+                long castStart = System.currentTimeMillis();
                 Elements castLinks = moviePage.select("a[rel=v:starring], a[rel=v:directedBy]");
-                for (Element castLink : castLinks) {
+                List<Element> randomActors = getRandomElements(castLinks, 5);
+                for (Element castLink : randomActors) {
                     String castUrl = castLink.attr("abs:href");
                    // System.out.println(castUrl);
                     if (!visitedCast.contains(castUrl)) {
@@ -78,12 +83,18 @@ public class DoubanMovieCrawler {
                         visitedCast.add(castUrl);
                     }
                 }
+                long castEnd = System.currentTimeMillis();
+                logger.info("演员爬取耗时:", castEnd - castStart);
+                System.out.println(castEnd - castStart);
                 //通过演员主页找到相关电影
+
                 while (!castUrlQueue.isEmpty()) {
                     String cast = castUrlQueue.poll();
+                    long castForMovieStart = System.currentTimeMillis();
                     Document cast1 = Jsoup.connect(cast).userAgent(randomUserAgent).get();
                     Elements castHomeLink = cast1.select("a[rel=v:starring], a[href*=subject]");
-                    for(Element movie : castHomeLink) {
+                    List<Element> randomMovies = getRandomElementsMovie(castHomeLink, 5);
+                    for(Element movie : randomMovies) {
                         if (movie != null) {
                             String castHomePageUrl = movie.attr("abs:href");
                             //System.out.println(castHomePageUrl);
@@ -93,10 +104,21 @@ public class DoubanMovieCrawler {
                             }
                         }
                     }
+                    long castForMovieEnd = System.currentTimeMillis();
+                    logger.info("通过演员爬取电影耗时:",castForMovieEnd - castForMovieStart);
+                    System.out.println(castForMovieEnd - castForMovieStart);
+                    randomWait();
                 }
-                Thread.sleep(3000);
+                count++;
+                randomWait();
+
+                if(count == 10) {
+                    longWait();
+                    count -= 10;
+                }
+
             }
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
@@ -145,6 +167,66 @@ public class DoubanMovieCrawler {
         Random random = new Random();
         int randomIndex = random.nextInt(commonUserAgents.length);
         return commonUserAgents[randomIndex];
+    }
+
+    private void randomWait() {
+        try {
+            Random random = new Random();
+            int waitTime = random.nextInt(3000) + 1000; // 随机生成 1000 到 4000 毫秒的等待时间
+            Thread.sleep(waitTime);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void longWait() {
+        try {
+            Thread.sleep(60000); // 长时间等待，例如 60 秒
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static List<Element> getRandomElements(Elements elements, int count) {
+        List<Element> randomElements = new ArrayList<>(count);
+        List<Integer> indices = new ArrayList<>(elements.size());
+
+        for (int i = 0; i < elements.size(); i++) {
+            indices.add(i);
+        }
+
+        Random random = new Random();
+        for (int i = 0; i < count; i++) {
+            if (!indices.isEmpty()) {
+                int randomIndex = random.nextInt(indices.size());
+                int elementIndex = indices.get(randomIndex);
+                randomElements.add(elements.get(elementIndex));
+                indices.remove(randomIndex);
+            }
+        }
+
+        return randomElements;
+    }
+
+    public static List<Element> getRandomElementsMovie(Elements elements, int count) {
+        List<Element> randomElements = new ArrayList<>(count);
+        List<Integer> indices = new ArrayList<>(elements.size());
+
+        for (int i = 0; i < elements.size(); i++) {
+            indices.add(i);
+        }
+
+        Random random = new Random();
+        for (int i = 0; i < count; i++) {
+            if (!indices.isEmpty()) {
+                int randomIndex = random.nextInt(indices.size());
+                int elementIndex = indices.get(randomIndex);
+                randomElements.add(elements.get(elementIndex));
+                indices.remove(randomIndex);
+            }
+        }
+
+        return randomElements;
     }
 
         @Transactional
